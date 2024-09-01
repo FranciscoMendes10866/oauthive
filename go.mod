@@ -3,6 +3,7 @@ module oauthive
 go 1.23.0
 
 require (
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-rel/rel v0.42.0
 	github.com/go-rel/sqlite3 v0.12.0
 	github.com/gorilla/sessions v1.1.1
@@ -12,7 +13,6 @@ require (
 )
 
 require (
-	github.com/go-chi/chi/v5 v5.1.0 // indirect
 	github.com/go-rel/sql v0.17.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/context v1.1.1 // indirect

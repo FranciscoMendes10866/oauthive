@@ -21,7 +21,7 @@ CREATE TABLE account (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE,
-    CONSTRAINT account_provider_provider_account_id_unique UNIQUE(provider, provider_account_id)
+    CONSTRAINT unique_user_account_provider UNIQUE(provider, user_id)
 );
 
 CREATE TABLE session (
