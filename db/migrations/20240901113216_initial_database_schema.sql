@@ -14,10 +14,11 @@ CREATE TABLE account (
     user_id INTEGER NOT NULL,
     provider TEXT NOT NULL,
     provider_account_id TEXT NOT NULL,
-    refresh_token TEXT, -- Token to get a new access token from the OAuth provider
-    access_token TEXT,  -- Token used to access the OAuth provider's resources
-    expires_at INTEGER, -- Expiration time of the access token
-    token_type TEXT,    -- Type of token issued (e.g., Bearer)
+    refresh_token TEXT,
+    access_token TEXT,
+    expires_at INTEGER,
+    token_type TEXT,
+    id_token TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE,
@@ -27,7 +28,7 @@ CREATE TABLE account (
 CREATE TABLE session (
     id INTEGER PRIMARY KEY NOT NULL,
     user_id INTEGER NOT NULL,
-    expires TIMESTAMP NOT NULL, -- Expiration time of the session
+    expires TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE

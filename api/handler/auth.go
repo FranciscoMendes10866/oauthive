@@ -12,10 +12,19 @@ import (
 type AuthHandler struct {
 	authenticator authenticator.Authenticator
 	userRepo      repository.UserRepository
+	accountRepo   repository.AccountRepository
 }
 
-func NewAuthHandler(authenticator authenticator.Authenticator, userRepo repository.UserRepository) *AuthHandler {
-	return &AuthHandler{authenticator, userRepo}
+func NewAuthHandler(
+	authenticator authenticator.Authenticator,
+	userRepo repository.UserRepository,
+	accountRepo repository.AccountRepository,
+) *AuthHandler {
+	return &AuthHandler{
+		authenticator,
+		userRepo,
+		accountRepo,
+	}
 }
 
 func (self *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -50,6 +59,19 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: upsert account
+	err = self.accountRepo.UpsertAccount(r.Context(), &entities.Account{
+		Provider:          user.Provider,
+		ProviderAccountID: user.UserID,
+		RefreshToken:      user.RefreshToken,
+		AccessToken:       user.AccessToken,
+		IDToken:           user.IDToken,
+		TokenType:         "Bearer",
+		UserID:            1,                     // TODO: get database user id
+		ExpiresAt:         user.ExpiresAt.Unix(), // TODO: parse date and get unix time
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	// TODO: create session
 }
