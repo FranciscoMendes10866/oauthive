@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE user (
-    id TEXT PRIMARY KEY NOT NULL,
+    id INTEGER PRIMARY KEY NOT NULL,
     name TEXT,
     email TEXT UNIQUE,
     image TEXT,
@@ -10,8 +10,8 @@ CREATE TABLE user (
 );
 
 CREATE TABLE account (
-    id TEXT PRIMARY KEY NOT NULL,
-    user_id TEXT NOT NULL,
+    id INTEGER PRIMARY KEY NOT NULL,
+    user_id INTEGER NOT NULL,
     provider TEXT NOT NULL,
     provider_account_id TEXT NOT NULL,
     refresh_token TEXT, -- Token to get a new access token from the OAuth provider
@@ -25,8 +25,8 @@ CREATE TABLE account (
 );
 
 CREATE TABLE session (
-    id TEXT PRIMARY KEY NOT NULL,
-    user_id TEXT NOT NULL,
+    id INTEGER PRIMARY KEY NOT NULL,
+    user_id INTEGER NOT NULL,
     expires TIMESTAMP NOT NULL, -- Expiration time of the session
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
