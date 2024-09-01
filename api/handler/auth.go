@@ -6,6 +6,7 @@ import (
 	"oauthive/db/entities"
 	"oauthive/domain/authenticator"
 
+	"github.com/araddon/dateparse"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -59,6 +60,18 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userRecord, err := self.userRepo.FindUserByEmail(r.Context(), user.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	parsedTime, err := dateparse.ParseAny(user.ExpiresAt.String())
+	if err != nil {
+		http.Error(w, "Error parsing date", http.StatusInternalServerError)
+		return
+	}
+
 	err = self.accountRepo.UpsertAccount(r.Context(), &entities.Account{
 		Provider:          user.Provider,
 		ProviderAccountID: user.UserID,
@@ -66,12 +79,15 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		AccessToken:       user.AccessToken,
 		IDToken:           user.IDToken,
 		TokenType:         "Bearer",
-		UserID:            1,                     // TODO: get database user id
-		ExpiresAt:         user.ExpiresAt.Unix(), // TODO: parse date and get unix time
+		UserID:            userRecord.ID,
+		ExpiresAt:         parsedTime.Unix(),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// TODO: create session
+
+	// TODO: create session -> sessionRepo.CreateSession
+	// TODO: create secure cookie -> github.com/gorilla/securecookie
+	// TODO: redirect user -> http.Redirect(w, r, "FRONTEND_URL", http.StatusFound)
 }

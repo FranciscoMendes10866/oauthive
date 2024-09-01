@@ -29,3 +29,15 @@ func (self *UserRepository) UpsertUser(ctx context.Context, user *entities.User)
 	existingUser.Image = user.Image
 	return self.db.Update(ctx, &existingUser)
 }
+
+func (self *UserRepository) FindUserByEmail(ctx context.Context, email string) (*entities.User, error) {
+	var user entities.User
+	err := self.db.Find(ctx, &user, where.Eq("email", email))
+	if err != nil {
+		if err == rel.ErrNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
