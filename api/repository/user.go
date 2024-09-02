@@ -26,7 +26,6 @@ func (self *UserRepository) UpsertUser(ctx context.Context, user *entities.User)
 		return err
 	}
 	existingUser.Name = user.Name
-	existingUser.Image = user.Image
 	return self.db.Update(ctx, &existingUser)
 }
 
