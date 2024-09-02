@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"oauthive/api/repository"
 	"oauthive/db/entities"
@@ -14,17 +15,20 @@ type AuthHandler struct {
 	authenticator authenticator.Authenticator
 	userRepo      repository.UserRepository
 	accountRepo   repository.AccountRepository
+	sessionRepo   repository.SessionRepository
 }
 
 func NewAuthHandler(
 	authenticator authenticator.Authenticator,
 	userRepo repository.UserRepository,
 	accountRepo repository.AccountRepository,
+	sessionRepo repository.SessionRepository,
 ) *AuthHandler {
 	return &AuthHandler{
 		authenticator,
 		userRepo,
 		accountRepo,
+		sessionRepo,
 	}
 }
 
@@ -66,28 +70,33 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parsedTime, err := dateparse.ParseAny(user.ExpiresAt.String())
-	if err != nil {
-		http.Error(w, "Error parsing date", http.StatusInternalServerError)
-		return
-	}
-
 	err = self.accountRepo.UpsertAccount(r.Context(), &entities.Account{
 		Provider:          user.Provider,
 		ProviderAccountID: user.UserID,
-		RefreshToken:      user.RefreshToken,
-		AccessToken:       user.AccessToken,
-		IDToken:           user.IDToken,
-		TokenType:         "Bearer",
 		UserID:            userRecord.ID,
-		ExpiresAt:         parsedTime.Unix(),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// TODO: create session -> sessionRepo.CreateSession
+	parsedTime, err := dateparse.ParseAny(user.ExpiresAt.String())
+	if err != nil {
+		http.Error(w, "Error parsing date", http.StatusInternalServerError)
+		return
+	}
+
+	newSession, err := self.sessionRepo.CreateSession(r.Context(), &entities.Session{
+		ExpiresAt: parsedTime.Unix(),
+		UserID:    userRecord.ID,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Println(newSession.ID)
+
 	// TODO: create secure cookie -> github.com/gorilla/securecookie
 	// TODO: redirect user -> http.Redirect(w, r, "FRONTEND_URL", http.StatusFound)
 }

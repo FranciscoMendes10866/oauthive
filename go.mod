@@ -10,7 +10,6 @@ require (
 	github.com/gorilla/sessions v1.1.1
 	github.com/markbates/goth v1.80.0
 	github.com/mattn/go-sqlite3 v1.14.22
-	golang.org/x/oauth2 v0.17.0
 )
 
 require (
@@ -21,6 +20,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/serenize/snaker v0.0.0-20201027110005-a7ad2135616e // indirect
+	golang.org/x/oauth2 v0.17.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 )

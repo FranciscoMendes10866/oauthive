@@ -2,7 +2,6 @@ package authenticator
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"os"
 
@@ -10,13 +9,11 @@ import (
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/discord"
-	"golang.org/x/oauth2"
 )
 
 type Authenticator interface {
 	InitializeLogin(provider string, w http.ResponseWriter, r *http.Request)
-	CompleteLogin(provider string, w http.ResponseWriter, r *http.Request) (*goth.User, error)
-	RefreshToken(provider, refreshToken string) (*oauth2.Token, error)
+	CompleteLogin(provider string, w http.ResponseWriter, r *http.Request) (goth.User, error)
 }
 
 type authenticator struct {
@@ -51,26 +48,7 @@ func (self *authenticator) InitializeLogin(provider string, w http.ResponseWrite
 	gothic.BeginAuthHandler(w, r)
 }
 
-func (self *authenticator) CompleteLogin(provider string, w http.ResponseWriter, r *http.Request) (*goth.User, error) {
+func (self *authenticator) CompleteLogin(provider string, w http.ResponseWriter, r *http.Request) (goth.User, error) {
 	r = r.WithContext(context.WithValue(r.Context(), "provider", provider))
-	user, err := gothic.CompleteUserAuth(w, r)
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
-func (self *authenticator) RefreshToken(provider, refreshToken string) (*oauth2.Token, error) {
-	switch provider {
-	case "discord":
-		{
-			newTokens, err := self.discordProvider.RefreshToken(refreshToken)
-			if err != nil {
-				return nil, err
-			}
-			return newTokens, nil
-		}
-	default:
-		return nil, errors.New("Oauth provider not supported")
-	}
+	return gothic.CompleteUserAuth(w, r)
 }

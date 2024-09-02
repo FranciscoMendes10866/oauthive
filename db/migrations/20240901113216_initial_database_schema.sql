@@ -14,11 +14,6 @@ CREATE TABLE account (
     user_id INTEGER NOT NULL,
     provider TEXT NOT NULL,
     provider_account_id TEXT NOT NULL,
-    refresh_token TEXT,
-    access_token TEXT,
-    expires_at INTEGER,
-    token_type TEXT,
-    id_token TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE,
@@ -28,12 +23,10 @@ CREATE TABLE account (
 CREATE TABLE session (
     id INTEGER PRIMARY KEY NOT NULL,
     user_id INTEGER NOT NULL,
-    account_id INTEGER NOT NULL,
     expires_at INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE
-    FOREIGN KEY(account_id) REFERENCES account(id)
 );
 -- +goose StatementEnd
 

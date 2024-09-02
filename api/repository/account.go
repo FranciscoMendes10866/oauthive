@@ -30,10 +30,5 @@ func (self *AccountRepository) UpsertAccount(ctx context.Context, account *entit
 	}
 
 	account.ID = existingAccount.ID
-	err = self.db.Update(ctx, account)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return self.db.Update(ctx, account)
 }
