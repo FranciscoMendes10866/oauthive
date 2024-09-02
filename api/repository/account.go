@@ -17,7 +17,12 @@ func NewAccountRepository(db rel.Repository) *AccountRepository {
 
 func (self *AccountRepository) UpsertAccount(ctx context.Context, account *entities.Account) error {
 	existingAccount := &entities.Account{}
-	err := self.db.Find(ctx, existingAccount, rel.Eq("provider", account.Provider).AndEq("user_id", account.UserID))
+	err := self.db.Find(
+		ctx,
+		existingAccount,
+		rel.Eq("provider", account.Provider).
+			AndEq("user_id", account.UserID),
+	)
 
 	if err != nil {
 		if err == rel.ErrNotFound {
