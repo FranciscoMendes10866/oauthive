@@ -57,7 +57,6 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	err = self.userRepo.UpsertUser(r.Context(), &entities.User{
 		Name:  user.Name,
 		Email: user.Email,
-		Image: user.AvatarURL,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
