@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
+	"oauthive/api/helpers"
 	"oauthive/api/repository"
 	"oauthive/db/entities"
 	"oauthive/domain/authenticator"
@@ -16,6 +16,7 @@ type AuthHandler struct {
 	userRepo      repository.UserRepository
 	accountRepo   repository.AccountRepository
 	sessionRepo   repository.SessionRepository
+	cookieManager helpers.CookieManager
 }
 
 func NewAuthHandler(
@@ -23,12 +24,14 @@ func NewAuthHandler(
 	userRepo repository.UserRepository,
 	accountRepo repository.AccountRepository,
 	sessionRepo repository.SessionRepository,
+	cookieManager helpers.CookieManager,
 ) *AuthHandler {
 	return &AuthHandler{
 		authenticator,
 		userRepo,
 		accountRepo,
 		sessionRepo,
+		cookieManager,
 	}
 }
 
@@ -94,8 +97,10 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(newSession.ID)
+	maxAge := 7 * 24 * 60 * 60 // 7 days
+	self.cookieManager.SetCookie(w, "auth_session", &helpers.CookieContent{
+		SessionID: newSession.ID,
+	}, maxAge)
 
-	// TODO: create secure cookie -> github.com/gorilla/securecookie
-	// TODO: redirect user -> http.Redirect(w, r, "FRONTEND_URL", http.StatusFound)
+	http.Redirect(w, r, helpers.FrontendURL, http.StatusFound)
 }
