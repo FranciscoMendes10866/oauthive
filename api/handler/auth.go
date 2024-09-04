@@ -13,18 +13,18 @@ import (
 
 type AuthHandler struct {
 	authenticator authenticator.Authenticator
-	userRepo      repository.UserRepository
-	accountRepo   repository.AccountRepository
-	sessionRepo   repository.SessionRepository
-	cookieManager helpers.CookieManager
+	userRepo      *repository.UserRepository
+	accountRepo   *repository.AccountRepository
+	sessionRepo   *repository.SessionRepository
+	cookieManager *helpers.CookieManager
 }
 
 func NewAuthHandler(
 	authenticator authenticator.Authenticator,
-	userRepo repository.UserRepository,
-	accountRepo repository.AccountRepository,
-	sessionRepo repository.SessionRepository,
-	cookieManager helpers.CookieManager,
+	userRepo *repository.UserRepository,
+	accountRepo *repository.AccountRepository,
+	sessionRepo *repository.SessionRepository,
+	cookieManager *helpers.CookieManager,
 ) *AuthHandler {
 	return &AuthHandler{
 		authenticator,
@@ -98,9 +98,23 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	maxAge := 7 * 24 * 60 * 60 // 7 days
-	self.cookieManager.SetCookie(w, "auth_session", &helpers.CookieContent{
+	self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, &helpers.CookieContent{
 		SessionID: newSession.ID,
 	}, maxAge)
 
 	http.Redirect(w, r, helpers.FrontendURL, http.StatusFound)
+}
+
+func (self *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	sessionID := helpers.GetSessionID(r.Context())
+
+	err := self.sessionRepo.DeleteSessionByID(r.Context(), sessionID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	self.cookieManager.ClearCookie(w, helpers.AuthSessionCookie)
+
+	w.Write([]byte("Logged out successfully"))
 }

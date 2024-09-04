@@ -34,3 +34,7 @@ func (self *SessionRepository) CreateSession(ctx context.Context, session *entit
 
 	return nil, err
 }
+
+func (self *SessionRepository) DeleteSessionByID(ctx context.Context, sessionID int) error {
+	return self.db.Delete(ctx, &entities.Session{ID: sessionID})
+}
