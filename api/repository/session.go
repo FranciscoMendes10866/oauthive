@@ -5,6 +5,7 @@ import (
 	"oauthive/db/entities"
 
 	"github.com/go-rel/rel"
+	"github.com/go-rel/rel/where"
 )
 
 type SessionRepository struct {
@@ -37,4 +38,13 @@ func (self *SessionRepository) CreateSession(ctx context.Context, session *entit
 
 func (self *SessionRepository) DeleteSessionByID(ctx context.Context, sessionID int) error {
 	return self.db.Delete(ctx, &entities.Session{ID: sessionID})
+}
+
+func (self *SessionRepository) FindSessionByID(ctx context.Context, sessionID int) (*entities.Session, error) {
+	session := &entities.Session{}
+	err := self.db.Find(ctx, session, where.Eq("id", sessionID))
+	if err != nil {
+		return nil, err
+	}
+	return session, nil
 }

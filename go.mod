@@ -3,7 +3,6 @@ module oauthive
 go 1.23.0
 
 require (
-	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-rel/rel v0.42.0
 	github.com/go-rel/sqlite3 v0.12.0

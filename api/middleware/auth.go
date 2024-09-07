@@ -6,9 +6,7 @@ import (
 	"oauthive/api/helpers"
 )
 
-type InterceptorFunc = func(handler http.HandlerFunc) http.HandlerFunc
-
-func BuildAuthGuard(cookieManager *helpers.CookieManager) InterceptorFunc {
+func BuildAuthGuard(cookieManager *helpers.CookieManager) func(handler http.HandlerFunc) http.HandlerFunc {
 	return func(handler http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := cookieManager.GetCookie(r, helpers.AuthSessionCookie)
