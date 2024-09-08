@@ -1,39 +1,54 @@
 package main
 
 import (
-	"oauthive/api/handler"
-	"oauthive/api/helpers"
-	m "oauthive/api/middleware"
-	"oauthive/api/repository"
+	"context"
+	"log"
+	"net/http"
+	"oauthive/api"
 	"oauthive/db"
-	"oauthive/domain/authenticator"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"os"
+	"os/signal"
+	"time"
 )
+
+func startServer(handler http.Handler, addr string) *http.Server {
+	server := &http.Server{
+		Addr:    addr,
+		Handler: handler,
+	}
+
+	go func() {
+		log.Printf("Server is starting on %s...\n", addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Could not start server: %v\n", err)
+		}
+	}()
+
+	return server
+}
+
+func gracefulShutdown(server *http.Server, timeout time.Duration) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, os.Kill)
+
+	<-quit
+	log.Println("Received shutdown signal, shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server shutdown failed: %v\n", err)
+	}
+
+	log.Println("Server shut down gracefully.")
+}
 
 func main() {
 	database := db.Init("database.db")
 
-	r := chi.NewRouter()
+	mux := api.NewMux(database)
+	server := startServer(mux, ":3333")
 
-	r.Use(middleware.StripSlashes)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-
-	authenticator := authenticator.NewAuthenticator()
-	cookieManager := helpers.NewCookieManager([]byte("KPMCSgGLbFsW"), []byte("uvgJkz7wXraU"))
-	authGuard := m.BuildAuthGuard(cookieManager)
-
-	userRepo := repository.NewUserRepository(database)
-	accountRepo := repository.NewAccountRepository(database)
-	sessionRepo := repository.NewSessionRepository(database)
-
-	authHandler := handler.NewAuthHandler(
-		authenticator,
-		userRepo,
-		accountRepo,
-		sessionRepo,
-		cookieManager,
-	)
+	gracefulShutdown(server, 5*time.Second)
 }

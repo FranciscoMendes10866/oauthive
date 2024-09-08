@@ -109,9 +109,7 @@ func (self *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	self.cookieManager.ClearCookie(w, helpers.AuthSessionCookie)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Logged out successfully"}`))
+	helpers.Reply(w, "Logged out successfully", http.StatusOK)
 }
 
 func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
@@ -124,9 +122,7 @@ func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
 	switch sessionStatus {
 	case helpers.CookieValid:
 	default:
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message": "Current session is still valid"}`))
+		helpers.Reply(w, "Current session is still valid", http.StatusOK)
 		return
 
 	case helpers.CookieRenew:
@@ -161,9 +157,7 @@ func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
 			SessionID: newSession.ID,
 		}, helpers.AuthSessionMaxAge)
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`{"message": "Session renewed successfully"}`))
+		helpers.Reply(w, "Session renewed successfully", http.StatusCreated)
 		return
 	}
 }
