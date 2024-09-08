@@ -6,6 +6,7 @@ import (
 	"oauthive/api/repository"
 	"oauthive/db/entities"
 	"oauthive/domain/authenticator"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -82,7 +83,7 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newSession, err := self.sessionRepo.CreateSession(r.Context(), &entities.Session{
-		ExpiresAt: helpers.AuthSessionMaxAge,
+		ExpiresAt: time.Now().AddDate(0, 0, 7).Unix(),
 		UserID:    userRecord.ID,
 	})
 	if err != nil {
@@ -108,7 +109,9 @@ func (self *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	self.cookieManager.ClearCookie(w, helpers.AuthSessionCookie)
 
-	w.Write([]byte("Logged out successfully"))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "Logged out successfully"}`))
 }
 
 func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
@@ -118,25 +121,21 @@ func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authCookie, err := self.cookieManager.GetCookie(r, helpers.AuthSessionCookie)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	switch sessionStatus {
-	case helpers.CookieExpired:
-		err := self.sessionRepo.DeleteSessionByID(r.Context(), authCookie.SessionID)
+	case helpers.CookieValid:
+	default:
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message": "Current session is still valid"}`))
+		return
+
+	case helpers.CookieRenew:
+		authCookie, err := self.cookieManager.GetCookie(r, helpers.AuthSessionCookie)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		self.cookieManager.ClearCookie(w, helpers.AuthSessionCookie)
-		http.Error(w, "Expired session", http.StatusForbidden)
-		return
-
-	case helpers.CookieRenew:
 		session, err := self.sessionRepo.FindSessionByID(r.Context(), authCookie.SessionID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -150,7 +149,7 @@ func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
 		}
 
 		newSession, err := self.sessionRepo.CreateSession(r.Context(), &entities.Session{
-			ExpiresAt: helpers.AuthSessionMaxAge,
+			ExpiresAt: time.Now().AddDate(0, 0, 7).Unix(),
 			UserID:    session.UserID,
 		})
 		if err != nil {
@@ -161,10 +160,10 @@ func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
 		self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, &helpers.CookieContent{
 			SessionID: newSession.ID,
 		}, helpers.AuthSessionMaxAge)
-		return
 
-	case helpers.CookieValid:
-		// TODO -> should I do anything? maybe return a 200 (ok)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(`{"message": "Session renewed successfully"}`))
 		return
 	}
 }
