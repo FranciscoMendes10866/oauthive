@@ -92,9 +92,13 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, &helpers.CookieContent{
+	err = self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, &helpers.CookieContent{
 		SessionID: newSession.ID,
 	}, helpers.AuthSessionMaxAge)
+	if err != nil {
+		helpers.Reply(w, err, http.StatusInternalServerError)
+		return
+	}
 
 	http.Redirect(w, r, helpers.FrontendURL, http.StatusFound)
 }
@@ -116,7 +120,7 @@ func (self *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 	sessionStatus, err := helpers.CheckAuthSession(r)
 	if err != nil {
-		helpers.Reply(w, err, http.StatusForbidden)
+		helpers.Reply(w, err, http.StatusUnauthorized)
 		return
 	}
 
@@ -129,13 +133,13 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 	case helpers.CookieRenew:
 		authCookie, err := self.cookieManager.GetCookie(r, helpers.AuthSessionCookie)
 		if err != nil {
-			helpers.Reply(w, err, http.StatusInternalServerError)
+			helpers.Reply(w, err, http.StatusForbidden)
 			return
 		}
 
 		session, err := self.sessionRepo.FindSessionByID(r.Context(), authCookie.SessionID)
 		if err != nil {
-			helpers.Reply(w, err, http.StatusInternalServerError)
+			helpers.Reply(w, err, http.StatusForbidden)
 			return
 		}
 
@@ -154,9 +158,13 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, &helpers.CookieContent{
+		err = self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, &helpers.CookieContent{
 			SessionID: newSession.ID,
 		}, helpers.AuthSessionMaxAge)
+		if err != nil {
+			helpers.Reply(w, err, http.StatusInternalServerError)
+			return
+		}
 
 		helpers.Reply(w, "Session renewed successfully", http.StatusCreated)
 		return

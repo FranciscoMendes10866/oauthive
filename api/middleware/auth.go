@@ -13,7 +13,7 @@ func BuildAuthGuard(cookieManager *helpers.CookieManager) AuthMiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := cookieManager.GetCookie(r, helpers.AuthSessionCookie)
 			if err != nil {
-				helpers.Reply(w, "Forbidden", http.StatusForbidden)
+				helpers.Reply(w, "Not Authorized", http.StatusUnauthorized)
 			}
 			r = r.WithContext(context.WithValue(r.Context(), helpers.CtxSessionID, cookie.SessionID))
 			handler(w, r)

@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gorilla/securecookie"
@@ -21,11 +20,10 @@ func NewCookieManager(hashKey, blockKey []byte) *CookieManager {
 	}
 }
 
-func (self *CookieManager) SetCookie(w http.ResponseWriter, name string, value *CookieContent, maxAge int) {
+func (self *CookieManager) SetCookie(w http.ResponseWriter, name string, value *CookieContent, maxAge int) error {
 	encoded, err := self.secureCookie.Encode(name, *value)
 	if err != nil {
-		log.Println("Error encoding cookie:", err)
-		return
+		return err
 	}
 	cookie := &http.Cookie{
 		Name:     name,
@@ -36,6 +34,7 @@ func (self *CookieManager) SetCookie(w http.ResponseWriter, name string, value *
 		MaxAge:   maxAge,
 	}
 	http.SetCookie(w, cookie)
+	return nil
 }
 
 func (self *CookieManager) GetCookie(r *http.Request, name string) (*CookieContent, error) {
