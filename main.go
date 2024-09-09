@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"oauthive/api"
 	"oauthive/db"
+	"oauthive/domain/authenticator"
 	"os"
 	"os/signal"
 	"time"
@@ -46,8 +47,9 @@ func gracefulShutdown(server *http.Server, timeout time.Duration) {
 
 func main() {
 	database := db.Init("database.db")
+	authenticator := authenticator.NewAuthenticator()
 
-	mux := api.NewMux(database)
+	mux := api.NewMux(database, authenticator)
 	server := startServer(mux, ":3333")
 
 	gracefulShutdown(server, 5*time.Second)

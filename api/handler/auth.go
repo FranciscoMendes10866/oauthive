@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"oauthive/api/helpers"
+	"oauthive/api/middleware"
 	"oauthive/api/repository"
 	"oauthive/db/entities"
 	"oauthive/domain/authenticator"
@@ -35,25 +36,25 @@ func NewAuthHandler(
 	}
 }
 
-func (self *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (self *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	provider := chi.URLParam(r, "provider")
 	if provider == "" {
-		http.Error(w, "Provider URL param is required", http.StatusBadRequest)
+		helpers.Reply(w, "Provider URL param is required", http.StatusBadRequest)
 		return
 	}
 	self.authenticator.InitializeLogin(provider, w, r)
 }
 
-func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
+func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 	provider := chi.URLParam(r, "provider")
 	if provider == "" {
-		http.Error(w, "Provider URL param is required", http.StatusBadRequest)
+		helpers.Reply(w, "Provider URL param is required", http.StatusBadRequest)
 		return
 	}
 
 	user, err := self.authenticator.CompleteLogin(provider, w, r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -62,13 +63,13 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		Email: user.Email,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	userRecord, err := self.userRepo.FindUserByEmail(r.Context(), user.Email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -78,7 +79,7 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		UserID:            userRecord.ID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -87,7 +88,7 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 		UserID:    userRecord.ID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -98,12 +99,12 @@ func (self *AuthHandler) LoginCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, helpers.FrontendURL, http.StatusFound)
 }
 
-func (self *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (self *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 	sessionID := helpers.GetSessionID(r.Context())
 
 	err := self.sessionRepo.DeleteSessionByID(r.Context(), sessionID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -112,10 +113,10 @@ func (self *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	helpers.Reply(w, "Logged out successfully", http.StatusOK)
 }
 
-func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
+func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 	sessionStatus, err := helpers.CheckAuthSession(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		helpers.Reply(w, err, http.StatusForbidden)
 		return
 	}
 
@@ -128,19 +129,19 @@ func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
 	case helpers.CookieRenew:
 		authCookie, err := self.cookieManager.GetCookie(r, helpers.AuthSessionCookie)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			helpers.Reply(w, err, http.StatusInternalServerError)
 			return
 		}
 
 		session, err := self.sessionRepo.FindSessionByID(r.Context(), authCookie.SessionID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			helpers.Reply(w, err, http.StatusInternalServerError)
 			return
 		}
 
 		err = self.sessionRepo.DeleteSessionByID(r.Context(), session.ID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			helpers.Reply(w, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -149,7 +150,7 @@ func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
 			UserID:    session.UserID,
 		})
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			helpers.Reply(w, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -160,4 +161,15 @@ func (self *AuthHandler) RenewSession(w http.ResponseWriter, r *http.Request) {
 		helpers.Reply(w, "Session renewed successfully", http.StatusCreated)
 		return
 	}
+}
+
+func (self *AuthHandler) SetupRoutes(authGuard middleware.AuthMiddlewareFunc) *chi.Mux {
+	mux := chi.NewMux()
+
+	mux.Get("/login/{provider}", self.login)
+	mux.Get("/{provider}/callback", self.loginCallback)
+	mux.Get("/refresh", self.renewSession)
+	mux.Get("/logout", authGuard(self.logout))
+
+	return mux
 }
