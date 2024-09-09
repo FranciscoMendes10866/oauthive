@@ -18,6 +18,7 @@ func NewMux(database rel.Repository, authenticator authenticator.Authenticator) 
 	mux.Use(mid.StripSlashes)
 	mux.Use(mid.Logger)
 	mux.Use(mid.Recoverer)
+	mux.Use(middleware.SetupSecureMiddleware())
 
 	cookieManager := helpers.NewCookieManager(
 		[]byte("KPMCSgGLbFsW"),

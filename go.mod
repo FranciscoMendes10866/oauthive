@@ -10,6 +10,7 @@ require (
 	github.com/gorilla/sessions v1.1.1
 	github.com/markbates/goth v1.80.0
 	github.com/mattn/go-sqlite3 v1.14.22
+	github.com/unrolled/secure v1.15.0
 )
 
 require (
