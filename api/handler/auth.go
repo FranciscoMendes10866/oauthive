@@ -118,9 +118,21 @@ func (self *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
-	sessionStatus, err := helpers.CheckAuthSession(r)
+	authCookie, err := self.cookieManager.GetCookie(r, helpers.AuthSessionCookie)
 	if err != nil {
 		helpers.Reply(w, err, http.StatusUnauthorized)
+		return
+	}
+
+	session, err := self.sessionRepo.FindSessionByID(r.Context(), authCookie.SessionID)
+	if err != nil {
+		helpers.Reply(w, err, http.StatusForbidden)
+		return
+	}
+
+	sessionStatus, err := helpers.CheckAuthSession(r, authCookie.IssuedAt, session.ExpiresAt)
+	if err != nil {
+		helpers.Reply(w, err, http.StatusForbidden)
 		return
 	}
 
@@ -131,18 +143,6 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case helpers.CookieRenew:
-		authCookie, err := self.cookieManager.GetCookie(r, helpers.AuthSessionCookie)
-		if err != nil {
-			helpers.Reply(w, err, http.StatusForbidden)
-			return
-		}
-
-		session, err := self.sessionRepo.FindSessionByID(r.Context(), authCookie.SessionID)
-		if err != nil {
-			helpers.Reply(w, err, http.StatusForbidden)
-			return
-		}
-
 		err = self.sessionRepo.DeleteSessionByID(r.Context(), session.ID)
 		if err != nil {
 			helpers.Reply(w, err, http.StatusInternalServerError)
