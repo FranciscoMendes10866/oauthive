@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func startServer(handler http.Handler, addr string) *http.Server {
@@ -46,6 +48,11 @@ func gracefulShutdown(server *http.Server, timeout time.Duration) {
 }
 
 func main() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		panic("Error loading .env file")
+	}
+
 	database := db.Init("database.db")
 	authenticator := authenticator.NewAuthenticator()
 

@@ -6,6 +6,7 @@ import (
 	"oauthive/api/middleware"
 	"oauthive/api/repository"
 	"oauthive/domain/authenticator"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	mid "github.com/go-chi/chi/v5/middleware"
@@ -21,8 +22,8 @@ func NewMux(database rel.Repository, authenticator authenticator.Authenticator) 
 	mux.Use(middleware.SetupSecureMiddleware())
 
 	cookieManager := helpers.NewCookieManager(
-		[]byte("KPMCSgGLbFsW"),
-		[]byte("uvgJkz7wXraU"),
+		[]byte(os.Getenv("COOKIE_HASH_KEY")),
+		[]byte(os.Getenv("COOKIE_BLOCK_KEY")),
 	)
 	authGuard := middleware.BuildAuthGuard(cookieManager)
 

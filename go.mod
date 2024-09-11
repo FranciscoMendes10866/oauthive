@@ -8,6 +8,7 @@ require (
 	github.com/go-rel/sqlite3 v0.12.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.1.1
+	github.com/joho/godotenv v1.5.1
 	github.com/markbates/goth v1.80.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/unrolled/secure v1.15.0
