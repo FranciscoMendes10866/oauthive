@@ -17,9 +17,7 @@ type Authenticator interface {
 	CompleteLogin(provider string, w http.ResponseWriter, r *http.Request) (goth.User, error)
 }
 
-type authenticator struct {
-	discordProvider *discord.Provider
-}
+type authenticator struct{}
 
 func NewAuthenticator() Authenticator {
 	discordProvider := discord.New(
@@ -39,9 +37,7 @@ func NewAuthenticator() Authenticator {
 
 	gothic.Store = store
 
-	return &authenticator{
-		discordProvider: discordProvider,
-	}
+	return &authenticator{}
 }
 
 func (self *authenticator) InitializeLogin(provider string, w http.ResponseWriter, r *http.Request) {

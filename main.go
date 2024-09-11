@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"oauthive/api"
@@ -50,10 +51,14 @@ func gracefulShutdown(server *http.Server, timeout time.Duration) {
 func main() {
 	err := godotenv.Load(".env")
 	if err != nil {
-		panic("Error loading .env file")
+		panic("Failed to load .env file: Ensure the file exists.")
 	}
 
-	database := db.Init("database.db")
+	database, err := db.Init("database.db")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize database: %v", err.Error()))
+	}
+
 	authenticator := authenticator.NewAuthenticator()
 
 	mux := api.NewMux(database, authenticator)

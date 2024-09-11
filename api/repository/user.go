@@ -16,22 +16,22 @@ func NewUserRepository(db rel.Repository) *UserRepository {
 	return &UserRepository{db}
 }
 
-func (self *UserRepository) UpsertUser(ctx context.Context, user *entities.User) error {
+func (r *UserRepository) UpsertUser(ctx context.Context, user *entities.User) error {
 	var existingUser entities.User
-	err := self.db.Find(ctx, &existingUser, where.Eq("email", user.Email))
+	err := r.db.Find(ctx, &existingUser, where.Eq("email", user.Email))
 	if err != nil {
 		if err == rel.ErrNotFound {
-			return self.db.Insert(ctx, user)
+			return r.db.Insert(ctx, user)
 		}
 		return err
 	}
 	existingUser.Name = user.Name
-	return self.db.Update(ctx, &existingUser)
+	return r.db.Update(ctx, &existingUser)
 }
 
-func (self *UserRepository) FindUserByEmail(ctx context.Context, email string) (*entities.User, error) {
+func (r *UserRepository) FindUserByEmail(ctx context.Context, email string) (*entities.User, error) {
 	var user entities.User
-	err := self.db.Find(ctx, &user, where.Eq("email", email))
+	err := r.db.Find(ctx, &user, where.Eq("email", email))
 	if err != nil {
 		if err == rel.ErrNotFound {
 			return nil, nil
