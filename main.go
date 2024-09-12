@@ -54,14 +54,16 @@ func main() {
 		panic("Failed to load .env file: Ensure the file exists.")
 	}
 
-	database, err := db.Init("database.db")
+	dabaseInstance, err := db.New("database.db")
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize database: %v", err.Error()))
 	}
+	defer dabaseInstance.Close()
 
+	databaseClient := dabaseInstance.GetClient()
 	authenticator := authenticator.NewAuthenticator()
 
-	mux := api.NewMux(database, authenticator)
+	mux := api.NewMux(databaseClient, authenticator)
 	server := startServer(mux, ":3333")
 
 	gracefulShutdown(server, 5*time.Second)

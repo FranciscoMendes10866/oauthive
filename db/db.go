@@ -8,22 +8,51 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type DatabaseAdapter interface {
+	GetClient() rel.Repository
+	Close() error
+}
+
+type databaseAdapter struct {
+	repo      rel.Repository
+	adapter   rel.Adapter
+	once      sync.Once
+	closeOnce sync.Once
+	initErr   error
+}
+
 var (
-	repo  rel.Repository
-	once  sync.Once
-	dbErr error
+	instance *databaseAdapter
+	once     sync.Once
 )
 
-func Init(dsn string) (rel.Repository, error) {
+func New(dsn string) (DatabaseAdapter, error) {
+	var err error
 	once.Do(func() {
-		adapter, err := sqlite3.Open(dsn)
+		instance = &databaseAdapter{}
+		instance.adapter, err = sqlite3.Open(dsn)
 		if err != nil {
-			dbErr = err
+			instance.initErr = err
 			return
 		}
-
-		repo = rel.New(adapter)
+		instance.repo = rel.New(instance.adapter)
 	})
+	if instance.initErr != nil {
+		return nil, instance.initErr
+	}
+	return instance, nil
+}
 
-	return repo, dbErr
+func (d *databaseAdapter) GetClient() rel.Repository {
+	return d.repo
+}
+
+func (d *databaseAdapter) Close() error {
+	var err error
+	d.closeOnce.Do(func() {
+		if d.adapter != nil {
+			err = d.adapter.Close()
+		}
+	})
+	return err
 }
