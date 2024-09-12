@@ -68,7 +68,7 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userRecord, err := self.userRepo.FindUserByEmail(r.Context(), user.Email)
-	if err != nil {
+	if err != nil || userRecord == nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -87,7 +87,7 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: time.Now().AddDate(0, 0, 7).Unix(),
 		UserID:    userRecord.ID,
 	})
-	if err != nil {
+	if err != nil || newSession == nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -153,7 +153,7 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 			ExpiresAt: time.Now().AddDate(0, 0, 7).Unix(),
 			UserID:    session.UserID,
 		})
-		if err != nil {
+		if err != nil || newSession == nil {
 			helpers.Reply(w, err, http.StatusInternalServerError)
 			return
 		}
