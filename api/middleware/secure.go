@@ -2,23 +2,18 @@ package middleware
 
 import (
 	"net/http"
-	"oauthive/api/helpers"
+	"os"
 
-	"github.com/unrolled/secure"
+	"github.com/rs/cors"
 )
 
-func SetupSecureMiddleware() func(next http.Handler) http.Handler {
-	secureMiddleware := secure.New(secure.Options{
-		FrameDeny:             true,
-		ContentTypeNosniff:    true,
-		SSLRedirect:           helpers.IsProd,
-		SSLProxyHeaders:       map[string]string{"X-Forwarded-Proto": "https"},
-		STSSeconds:            31536000,
-		STSIncludeSubdomains:  true,
-		STSPreload:            true,
-		BrowserXssFilter:      true,
-		AllowedHosts:          []string{helpers.FrontendURL, "https://discord.com"},
-		ContentSecurityPolicy: "default-src 'self'; script-src 'self'; connect-src 'self' discord.com; object-src 'none'; frame-ancestors 'none';",
+func SetupCors() func(next http.Handler) http.Handler {
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{os.Getenv("FRONTEND_URL"), "https://discord.com"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders:   []string{"Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           300,
 	})
-	return secureMiddleware.Handler
+	return c.Handler
 }

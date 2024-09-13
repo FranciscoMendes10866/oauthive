@@ -7,6 +7,7 @@ import (
 	"oauthive/api/repository"
 	"oauthive/db/entities"
 	"oauthive/domain/authenticator"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -68,7 +69,7 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userRecord, err := self.userRepo.FindUserByEmail(r.Context(), user.Email)
-	if err != nil || userRecord == nil {
+	if err != nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -87,7 +88,7 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: time.Now().AddDate(0, 0, 7).Unix(),
 		UserID:    userRecord.ID,
 	})
-	if err != nil || newSession == nil {
+	if err != nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -100,7 +101,7 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, helpers.FrontendURL, http.StatusFound)
+	http.Redirect(w, r, os.Getenv("FRONTEND_URL"), http.StatusFound)
 }
 
 func (self *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +154,7 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 			ExpiresAt: time.Now().AddDate(0, 0, 7).Unix(),
 			UserID:    session.UserID,
 		})
-		if err != nil || newSession == nil {
+		if err != nil {
 			helpers.Reply(w, err, http.StatusInternalServerError)
 			return
 		}
@@ -171,13 +172,13 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (self *AuthHandler) SetupRoutes(authGuard middleware.AuthMiddlewareFunc) *chi.Mux {
+func (self *AuthHandler) SetupRoutes(authMiddleware middleware.AuthMiddlewareFunc) *chi.Mux {
 	mux := chi.NewMux()
 
 	mux.Get("/login/{provider}", self.login)
 	mux.Get("/{provider}/callback", self.loginCallback)
 	mux.Get("/refresh", self.renewSession)
-	mux.Get("/logout", authGuard(self.logout))
+	mux.With(authMiddleware).Get("/logout", self.logout)
 
 	return mux
 }

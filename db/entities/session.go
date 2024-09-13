@@ -11,7 +11,3 @@ type Session struct {
 	CreatedAt time.Time `json:"created_at" rel:"type:timestamp;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `json:"updated_at" rel:"type:timestamp;default:CURRENT_TIMESTAMP"`
 }
-
-func (self *Session) Table() string {
-	return "session"
-}

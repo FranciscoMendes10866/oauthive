@@ -29,14 +29,14 @@ func (r *UserRepository) UpsertUser(ctx context.Context, user *entities.User) er
 	return r.db.Update(ctx, &existingUser)
 }
 
-func (r *UserRepository) FindUserByEmail(ctx context.Context, email string) (*entities.User, error) {
+func (r *UserRepository) FindUserByEmail(ctx context.Context, email string) (entities.User, error) {
 	var user entities.User
 	err := r.db.Find(ctx, &user, where.Eq("email", email))
 	if err != nil {
 		if err == rel.ErrNotFound {
-			return nil, nil
+			return user, nil
 		}
-		return nil, err
+		return user, err
 	}
-	return &user, nil
+	return user, nil
 }

@@ -3,7 +3,6 @@ package authenticator
 import (
 	"context"
 	"net/http"
-	"oauthive/api/helpers"
 	"os"
 
 	"github.com/gorilla/sessions"
@@ -33,7 +32,7 @@ func NewAuthenticator() Authenticator {
 	store.MaxAge(60 * 4) // 4 minutes
 	store.Options.Path = "/"
 	store.Options.HttpOnly = true
-	store.Options.Secure = helpers.IsProd
+	store.Options.Secure = os.Getenv("API_ENV") == "prod"
 
 	gothic.Store = store
 

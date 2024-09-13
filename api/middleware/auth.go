@@ -7,17 +7,18 @@ import (
 	"oauthive/api/helpers"
 )
 
-type AuthMiddlewareFunc = func(handler http.HandlerFunc) http.HandlerFunc
+type AuthMiddlewareFunc = func(next http.Handler) http.Handler
 
-func BuildAuthGuard(cookieManager *helpers.CookieManager) AuthMiddlewareFunc {
-	return func(handler http.HandlerFunc) http.HandlerFunc {
+func BuildAuthMiddleware(cookieManager *helpers.CookieManager) AuthMiddlewareFunc {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := cookieManager.GetCookie(r, helpers.AuthSessionCookie)
 			if err != nil {
 				helpers.Reply(w, errors.New("Not Authorized"), http.StatusUnauthorized)
+				return
 			}
-			r = r.WithContext(context.WithValue(r.Context(), helpers.CtxSessionID, cookie.SessionID))
-			handler(w, r)
+			ctx := context.WithValue(r.Context(), helpers.CtxSessionID, cookie.SessionID)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

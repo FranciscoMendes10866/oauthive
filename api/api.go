@@ -19,13 +19,13 @@ func NewMux(database rel.Repository, authenticator authenticator.Authenticator) 
 	mux.Use(mid.StripSlashes)
 	mux.Use(mid.Logger)
 	mux.Use(mid.Recoverer)
-	mux.Use(middleware.SetupSecureMiddleware())
+	mux.Use(middleware.SetupCors())
 
 	cookieManager := helpers.NewCookieManager(
 		[]byte(os.Getenv("COOKIE_HASH_KEY")),
 		[]byte(os.Getenv("COOKIE_BLOCK_KEY")),
 	)
-	authGuard := middleware.BuildAuthGuard(cookieManager)
+	authMiddleware := middleware.BuildAuthMiddleware(cookieManager)
 
 	userRepo := repository.NewUserRepository(database)
 	accountRepo := repository.NewAccountRepository(database)
@@ -39,7 +39,7 @@ func NewMux(database rel.Repository, authenticator authenticator.Authenticator) 
 		cookieManager,
 	)
 
-	mux.Mount("/auth", authHandler.SetupRoutes(authGuard))
+	mux.Mount("/auth", authHandler.SetupRoutes(authMiddleware))
 
 	return mux
 }

@@ -11,7 +11,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/markbates/goth v1.80.0
 	github.com/mattn/go-sqlite3 v1.14.22
-	github.com/unrolled/secure v1.15.0
+	github.com/rs/cors v1.11.1
 )
 
 require (
