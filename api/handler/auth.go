@@ -104,20 +104,6 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, os.Getenv("FRONTEND_URL"), http.StatusFound)
 }
 
-func (self *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
-	sessionID := helpers.GetSessionID(r.Context())
-
-	err := self.sessionRepo.DeleteSessionByID(r.Context(), sessionID)
-	if err != nil {
-		helpers.Reply(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	self.cookieManager.ClearCookie(w, helpers.AuthSessionCookie)
-
-	helpers.Reply(w, "Logged out successfully", http.StatusOK)
-}
-
 func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 	authCookie, err := self.cookieManager.GetCookie(r, helpers.AuthSessionCookie)
 	if err != nil {
@@ -172,12 +158,39 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (self *AuthHandler) getUser(w http.ResponseWriter, r *http.Request) {
+	sessionID := helpers.GetSessionID(r.Context())
+
+	user, err := self.userRepo.FindUserBySessionID(r.Context(), sessionID)
+	if err != nil {
+		helpers.Reply(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	helpers.Reply(w, user, http.StatusOK)
+}
+
+func (self *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
+	sessionID := helpers.GetSessionID(r.Context())
+
+	err := self.sessionRepo.DeleteSessionByID(r.Context(), sessionID)
+	if err != nil {
+		helpers.Reply(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	self.cookieManager.ClearCookie(w, helpers.AuthSessionCookie)
+
+	helpers.Reply(w, "Logged out successfully", http.StatusOK)
+}
+
 func (self *AuthHandler) SetupRoutes(authMiddleware middleware.AuthMiddlewareFunc) *chi.Mux {
 	mux := chi.NewMux()
 
 	mux.Get("/login/{provider}", self.login)
 	mux.Get("/{provider}/callback", self.loginCallback)
 	mux.Get("/refresh", self.renewSession)
+	mux.With(authMiddleware).Get("/user", self.getUser)
 	mux.With(authMiddleware).Get("/logout", self.logout)
 
 	return mux

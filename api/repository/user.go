@@ -40,3 +40,22 @@ func (r *UserRepository) FindUserByEmail(ctx context.Context, email string) (ent
 	}
 	return user, nil
 }
+
+func (r *UserRepository) FindUserBySessionID(ctx context.Context, sessionID int) (entities.User, error) {
+	var (
+		session entities.Session
+		user    entities.User
+	)
+
+	err := r.db.Find(ctx, &session, where.Eq("id", sessionID))
+	if err != nil {
+		return user, err
+	}
+
+	err = r.db.Find(ctx, &user, where.Eq("id", session.UserID))
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
+}
