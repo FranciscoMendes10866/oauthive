@@ -17,20 +17,22 @@ func NewSessionRepository(db rel.Repository) *SessionRepository {
 }
 
 func (repo *SessionRepository) CreateSession(ctx context.Context, session *entities.Session) (entities.Session, error) {
-	err := repo.db.Insert(ctx, session)
-	if err == nil {
-		return entities.Session{}, nil
+	if err := repo.db.Insert(ctx, session); err != nil {
+		if err != rel.ErrUniqueConstraint {
+			return entities.Session{}, err
+		}
+		var existingSession entities.Session
+		err := repo.db.Find(
+			ctx,
+			&existingSession,
+			where.Eq("user_id", session.UserID).AndEq("expires_at", session.ExpiresAt),
+		)
+		if err != nil {
+			return entities.Session{}, err
+		}
+		return existingSession, nil
 	}
-	existingSession := entities.Session{}
-	err = repo.db.Find(
-		ctx,
-		&existingSession,
-		rel.Eq("user_id", session.UserID).AndEq("expires_at", session.ExpiresAt),
-	)
-	if err == rel.ErrNotFound {
-		return existingSession, err
-	}
-	return existingSession, nil
+	return *session, nil
 }
 
 func (repo *SessionRepository) DeleteSessionByID(ctx context.Context, sessionID int) error {
@@ -39,8 +41,7 @@ func (repo *SessionRepository) DeleteSessionByID(ctx context.Context, sessionID 
 
 func (repo *SessionRepository) FindSessionByID(ctx context.Context, sessionID int) (entities.Session, error) {
 	session := entities.Session{}
-	err := repo.db.Find(ctx, &session, where.Eq("id", sessionID))
-	if err != nil {
+	if err := repo.db.Find(ctx, &session, where.Eq("id", sessionID)); err != nil {
 		return session, err
 	}
 	return session, nil

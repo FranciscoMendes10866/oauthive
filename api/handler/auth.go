@@ -59,11 +59,10 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = self.userRepo.UpsertUser(r.Context(), &entities.User{
+	if err := self.userRepo.UpsertUser(r.Context(), entities.User{
 		Name:  user.Name,
 		Email: user.Email,
-	})
-	if err != nil {
+	}); err != nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -74,12 +73,11 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = self.accountRepo.UpsertAccount(r.Context(), &entities.Account{
+	if err := self.accountRepo.UpsertAccount(r.Context(), &entities.Account{
 		Provider:          user.Provider,
 		ProviderAccountID: user.UserID,
 		UserID:            userRecord.ID,
-	})
-	if err != nil {
+	}); err != nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -93,10 +91,9 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, &helpers.CookieContent{
+	if err := self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, helpers.CookieContent{
 		SessionID: newSession.ID,
-	}, helpers.AuthSessionMaxAge)
-	if err != nil {
+	}, helpers.AuthSessionMaxAge); err != nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -130,8 +127,7 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case helpers.CookieRenew:
-		err = self.sessionRepo.DeleteSessionByID(r.Context(), session.ID)
-		if err != nil {
+		if err := self.sessionRepo.DeleteSessionByID(r.Context(), session.ID); err != nil {
 			helpers.Reply(w, err, http.StatusInternalServerError)
 			return
 		}
@@ -145,10 +141,9 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, &helpers.CookieContent{
+		if err := self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, helpers.CookieContent{
 			SessionID: newSession.ID,
-		}, helpers.AuthSessionMaxAge)
-		if err != nil {
+		}, helpers.AuthSessionMaxAge); err != nil {
 			helpers.Reply(w, err, http.StatusInternalServerError)
 			return
 		}
@@ -161,7 +156,13 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 func (self *AuthHandler) getUser(w http.ResponseWriter, r *http.Request) {
 	sessionID := helpers.GetSessionID(r.Context())
 
-	user, err := self.userRepo.FindUserBySessionID(r.Context(), sessionID)
+	session, err := self.sessionRepo.FindSessionByID(r.Context(), sessionID)
+	if err != nil {
+		helpers.Reply(w, err, http.StatusForbidden)
+		return
+	}
+
+	user, err := self.userRepo.FindUserByID(r.Context(), session.UserID)
 	if err != nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
@@ -173,8 +174,7 @@ func (self *AuthHandler) getUser(w http.ResponseWriter, r *http.Request) {
 func (self *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 	sessionID := helpers.GetSessionID(r.Context())
 
-	err := self.sessionRepo.DeleteSessionByID(r.Context(), sessionID)
-	if err != nil {
+	if err := self.sessionRepo.DeleteSessionByID(r.Context(), sessionID); err != nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
 	}

@@ -25,9 +25,9 @@ func NewCookieManager(hashKey, blockKey []byte) *CookieManager {
 	}
 }
 
-func (self *CookieManager) SetCookie(w http.ResponseWriter, name string, value *CookieContent, maxAge int) error {
+func (self *CookieManager) SetCookie(w http.ResponseWriter, name string, value CookieContent, maxAge int) error {
 	value.IssuedAt = time.Now().Unix()
-	encoded, err := self.secureCookie.Encode(name, *value)
+	encoded, err := self.secureCookie.Encode(name, value)
 	if err != nil {
 		return err
 	}
@@ -42,14 +42,14 @@ func (self *CookieManager) SetCookie(w http.ResponseWriter, name string, value *
 	return nil
 }
 
-func (self *CookieManager) GetCookie(r *http.Request, name string) (*CookieContent, error) {
+func (self *CookieManager) GetCookie(r *http.Request, name string) (CookieContent, error) {
+	value := CookieContent{}
 	if cookie, err := r.Cookie(name); err == nil {
-		value := &CookieContent{}
 		if err = self.secureCookie.Decode(name, cookie.Value, &value); err == nil {
 			return value, nil
 		}
 	}
-	return nil, http.ErrNoCookie
+	return value, http.ErrNoCookie
 }
 
 func (self *CookieManager) ClearCookie(w http.ResponseWriter, name string) {
