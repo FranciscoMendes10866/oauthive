@@ -3,14 +3,14 @@ package helpers
 import (
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gorilla/securecookie"
 )
 
 type CookieContent struct {
-	SessionID int
-	IssuedAt  int64
+	SessionID        int
+	IssuedAt         int64
+	RenewalTimeframe int64
 }
 
 type CookieManager struct {
@@ -26,7 +26,6 @@ func NewCookieManager(hashKey, blockKey []byte) *CookieManager {
 }
 
 func (self *CookieManager) SetCookie(w http.ResponseWriter, name string, value CookieContent, maxAge int) error {
-	value.IssuedAt = time.Now().Unix()
 	encoded, err := self.secureCookie.Encode(name, value)
 	if err != nil {
 		return err

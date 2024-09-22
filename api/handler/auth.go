@@ -8,7 +8,6 @@ import (
 	"oauthive/db/entities"
 	"oauthive/domain/authenticator"
 	"os"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -82,8 +81,10 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	timeFactory := &helpers.TimeframeFactory{}
+
 	newSession, err := self.sessionRepo.CreateSession(r.Context(), &entities.Session{
-		ExpiresAt: time.Now().AddDate(0, 0, 7).Unix(),
+		ExpiresAt: timeFactory.GenerateExpiresAt(),
 		UserID:    userRecord.ID,
 	})
 	if err != nil {
@@ -92,7 +93,9 @@ func (self *AuthHandler) loginCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, helpers.CookieContent{
-		SessionID: newSession.ID,
+		SessionID:        newSession.ID,
+		IssuedAt:         timeFactory.GenerateIssuedAt(),
+		RenewalTimeframe: timeFactory.GenerateRenewalTimeframe(),
 	}, helpers.AuthSessionMaxAge); err != nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)
 		return
@@ -114,11 +117,13 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionStatus, err := helpers.CheckAuthSession(r, authCookie.IssuedAt, session.ExpiresAt)
-	if err != nil {
-		helpers.Reply(w, err, http.StatusForbidden)
-		return
-	}
+	timeFactory := &helpers.TimeframeFactory{}
+
+	sessionStatus := timeFactory.Verify(
+		authCookie.IssuedAt,
+		session.ExpiresAt,
+		authCookie.RenewalTimeframe,
+	)
 
 	switch sessionStatus {
 	case helpers.CookieValid:
@@ -133,7 +138,7 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 		}
 
 		newSession, err := self.sessionRepo.CreateSession(r.Context(), &entities.Session{
-			ExpiresAt: time.Now().AddDate(0, 0, 7).Unix(),
+			ExpiresAt: timeFactory.GenerateExpiresAt(),
 			UserID:    session.UserID,
 		})
 		if err != nil {
@@ -142,7 +147,9 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := self.cookieManager.SetCookie(w, helpers.AuthSessionCookie, helpers.CookieContent{
-			SessionID: newSession.ID,
+			SessionID:        newSession.ID,
+			IssuedAt:         timeFactory.GenerateIssuedAt(),
+			RenewalTimeframe: timeFactory.GenerateRenewalTimeframe(),
 		}, helpers.AuthSessionMaxAge); err != nil {
 			helpers.Reply(w, err, http.StatusInternalServerError)
 			return
@@ -154,7 +161,11 @@ func (self *AuthHandler) renewSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (self *AuthHandler) getUser(w http.ResponseWriter, r *http.Request) {
-	sessionID := helpers.GetSessionID(r.Context())
+	sessionID, err := helpers.GetSessionID(r.Context())
+	if err != nil {
+		helpers.Reply(w, err, http.StatusForbidden)
+		return
+	}
 
 	session, err := self.sessionRepo.FindSessionByID(r.Context(), sessionID)
 	if err != nil {
@@ -172,7 +183,11 @@ func (self *AuthHandler) getUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (self *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
-	sessionID := helpers.GetSessionID(r.Context())
+	sessionID, err := helpers.GetSessionID(r.Context())
+	if err != nil {
+		helpers.Reply(w, err, http.StatusForbidden)
+		return
+	}
 
 	if err := self.sessionRepo.DeleteSessionByID(r.Context(), sessionID); err != nil {
 		helpers.Reply(w, err, http.StatusInternalServerError)

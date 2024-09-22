@@ -3,30 +3,42 @@ package helpers
 import (
 	"context"
 	"errors"
-	"net/http"
 	"time"
 )
 
-func GetSessionID(ctx context.Context) int {
-	return ctx.Value(CtxSessionID).(int)
+func GetSessionID(ctx context.Context) (int, error) {
+	sessionID, ok := ctx.Value(CtxSessionID).(int)
+	if !ok {
+		return 0, errors.New("session ID not found in context")
+	}
+	return sessionID, nil
 }
 
-type CookieStatus = string
+type CookieStatus string
 
 const (
 	CookieValid CookieStatus = "valid"
 	CookieRenew CookieStatus = "renew"
 )
 
-func CheckAuthSession(r *http.Request, issuedAt, expiresAt int64) (CookieStatus, error) {
-	elapsedTime := time.Now().Unix() - issuedAt
-	remainingAge := expiresAt - elapsedTime
+type TimeframeFactory struct{}
 
-	if remainingAge > 0 && remainingAge <= AuthRenewThreshold {
-		return CookieRenew, nil
-	} else if remainingAge > 0 {
-		return CookieValid, nil
+func (tf *TimeframeFactory) GenerateIssuedAt() int64 {
+	return time.Now().Unix()
+}
+
+func (tf *TimeframeFactory) GenerateExpiresAt() int64 {
+	return time.Now().Add(7 * 24 * time.Hour).Unix()
+}
+
+func (tf *TimeframeFactory) GenerateRenewalTimeframe() int64 {
+	return time.Now().Add(4 * 24 * time.Hour).Unix()
+}
+
+func (tf *TimeframeFactory) Verify(issuedAt, expiresAt, renewalTimeframe int64) CookieStatus {
+	remainingTime := expiresAt - time.Now().Unix()
+	if remainingTime > renewalTimeframe && remainingTime <= expiresAt {
+		return CookieRenew
 	}
-
-	return "", errors.New("Cookie expired")
+	return CookieValid
 }
